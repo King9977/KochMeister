@@ -2,7 +2,7 @@
   <ion-toolbar>
     <ion-title>Einkaufsliste</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="clearList()">
+      <ion-button (click)="clearCheckedItems()">
         <ion-icon name="trash-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -10,24 +10,49 @@
 </ion-header>
 
 <ion-content>
+  <!-- Shopping List -->
   <ion-list>
-    <ion-item-sliding *ngFor="let item of shoppingList">
-      <ion-item>
-        <ion-checkbox [(ngModel)]="item.checked" (ionChange)="updateItem(item)">
-        </ion-checkbox>
-        <ion-label [class.checked]="item.checked">
-          {{ item.amount }} {{ item.unit }} {{ item.name }}
-        </ion-label>
-      </ion-item>
-      <ion-item-options>
-        <ion-item-option color="danger" (click)="removeItem(item)">
-          <ion-icon name="trash-outline"></ion-icon>
-        </ion-item-option>
-      </ion-item-options>
-    </ion-item-sliding>
+    <ion-item *ngFor="let item of shoppingList">
+      <ion-checkbox [(ngModel)]="item.checked" (ionChange)="saveList()"></ion-checkbox>
+      <ion-label>{{ item.amount }} {{ item.unit }} {{ item.name }}</ion-label>
+    </ion-item>
   </ion-list>
 
   <div *ngIf="shoppingList.length === 0" class="empty-state">
     <p>Keine Artikel in der Einkaufsliste</p>
   </div>
+
+  <!-- Add Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="openAddModal()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- Modal -->
+  <ion-modal [isOpen]="showModal" (ionModalDidDismiss)="closeAddModal()" class="custom-modal">
+    <div class="modal-content">
+      <h2>Artikel hinzufügen</h2>
+
+      <ion-item>
+        <ion-label position="stacked">Name</ion-label>
+        <ion-input [(ngModel)]="newItem.name" placeholder="Artikelname"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Menge</ion-label>
+        <ion-input [(ngModel)]="newItem.amount" type="number" placeholder="Menge"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Einheit</ion-label>
+        <ion-input [(ngModel)]="newItem.unit" placeholder="Einheit"></ion-input>
+      </ion-item>
+
+      <div class="modal-actions">
+        <ion-button expand="block" color="primary" (click)="saveNewItem()">Speichern</ion-button>
+        <ion-button expand="block" color="light" (click)="closeAddModal()">Abbrechen</ion-button>
+      </div>
+    </div>
+  </ion-modal>
 </ion-content>

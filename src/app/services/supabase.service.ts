@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { Recipe } from '../interfaces/recipe.interface';
 import { BehaviorSubject } from 'rxjs';
+import { ShoppingListItem } from '../interfaces/recipe.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -167,6 +168,95 @@ export class SupabaseService {
       return true;
     } catch (error) {
       console.error('Error deleting recipe:', error);
+      return false;
+    }
+  }
+
+  async fetchShoppingList(): Promise<ShoppingListItem[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('shopping_list_items')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching shopping list:', error);
+      return [];
+    }
+  }
+
+  async addShoppingItem(item: ShoppingListItem): Promise<ShoppingListItem | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('shopping_list_items')
+        .insert([{
+          name: item.name,
+          amount: item.amount,
+          unit: item.unit,
+          checked: item.checked,
+          created_at: item.createdAt,
+          updated_at: item.updatedAt
+        }])
+        .select()
+        .single();
+  
+      if (error) throw error;
+  
+      return {
+        id: data.id,
+        name: data.name,
+        amount: data.amount,
+        unit: data.unit,
+        checked: data.checked,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    } catch (error) {
+      console.error('Fehler beim Hinzufügen des Artikels zu Supabase:', error);
+      return null;
+    }
+  }
+  
+  
+  
+
+  async updateShoppingList(items: ShoppingListItem[]) {
+    try {
+      const { error } = await this.supabase
+        .from('shopping_list_items')
+        .upsert(
+          items.map(item => ({
+            id: item.id,
+            name: item.name,
+            amount: item.amount,
+            unit: item.unit,
+            checked: item.checked,
+            created_at: item.createdAt,
+            updated_at: item.updatedAt
+          })),
+          { onConflict: 'id' }
+        );
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shopping list:', error);
+      throw error;
+    }
+  }
+
+  async deleteShoppingItem(id: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('shopping_list_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting shopping item:', error);
       return false;
     }
   }

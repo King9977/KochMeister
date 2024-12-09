@@ -126,6 +126,7 @@ export class SettingsPage implements OnInit {
 
   async clearOfflineData() {
     await this.storageService.saveOfflineRecipes([]);
+    await this.storageService.clearShoppingList();
     this.savedRecipesCount = 0;
   }
 }

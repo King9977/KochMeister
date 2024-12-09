@@ -7,6 +7,8 @@ import { Recipe, ShoppingListItem } from '../interfaces/recipe.interface';
 })
 export class StorageService {
   private _storage: Storage | null = null;
+  private SHOPPING_LIST_KEY = 'shoppingList';
+
 
   constructor(private storage: Storage) {
     this.init();
@@ -25,12 +27,17 @@ export class StorageService {
     return this._storage?.get('offline_recipes') || [];
   }
 
-  async saveShoppingList(items: ShoppingListItem[]) {
-    return this._storage?.set('shopping_list', items);
+  async saveShoppingList(list: ShoppingListItem[]): Promise<void> {
+    localStorage.setItem(this.SHOPPING_LIST_KEY, JSON.stringify(list));
   }
 
   async getShoppingList(): Promise<ShoppingListItem[]> {
-    return this._storage?.get('shopping_list') || [];
+    const data = localStorage.getItem(this.SHOPPING_LIST_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  async clearShoppingList(): Promise<void> {
+    localStorage.removeItem(this.SHOPPING_LIST_KEY);
   }
 
   async setDarkMode(isDark: boolean) {

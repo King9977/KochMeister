@@ -6,12 +6,13 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonButtons, IonBackButton, IonButton, IonIcon,
   IonList, IonItem, IonLabel, IonInput, IonTextarea,
-  IonSelect, IonSelectOption
+  IonSelect, IonSelectOption, ActionSheetController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   cameraOutline, addOutline, trashOutline,
-  chevronBackOutline, saveOutline 
+  chevronBackOutline, saveOutline, closeOutline,
+  imageOutline 
 } from 'ionicons/icons';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Recipe, Ingredient } from '../../interfaces/recipe.interface';
@@ -37,7 +38,7 @@ import { LoadingController, ToastController } from '@ionic/angular';
     </ion-header>
 
     <ion-content>
-      <div class="image-container" (click)="takePicture()">
+      <div class="image-container" (click)="selectImageSource()">
         <img [src]="recipeImage || 'assets/placeholder-recipe.jpg'" alt="recipe">
         <div class="image-overlay">
           <ion-icon name="camera-outline"></ion-icon>
@@ -166,31 +167,80 @@ export class AddRecipePage {
     private supabaseService: SupabaseService,
     private router: Router,
     private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private actionSheetCtrl: ActionSheetController
   ) {
     addIcons({
       cameraOutline,
       addOutline,
       trashOutline,
       chevronBackOutline,
-      saveOutline
+      saveOutline,
+      closeOutline,
+      imageOutline
     });
   }
 
-  async takePicture() {
+  async selectImageSource() {
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'Bild auswählen',
+      buttons: [
+        {
+          text: 'Kamera',
+          icon: 'camera-outline',
+          handler: () => {
+            this.takePicture(CameraSource.Camera);
+          }
+        },
+        {
+          text: 'Foto auswählen',
+          icon: 'image-outline',
+          handler: () => {
+            this.takePicture(CameraSource.Photos);
+          }
+        },
+        {
+          text: 'Abbrechen',
+          icon: 'close',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await actionSheet.present();
+  }
+
+  async takePicture(source: CameraSource) {
     try {
       const image = await Camera.getPhoto({
         quality: 90,
         allowEditing: true,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera
+        resultType: CameraResultType.Base64,
+        source: source,
+        width: 1200,
+        height: 1200,
+        correctOrientation: true
       });
 
-      this.recipeImage = image.dataUrl ?? null;
-    } catch (error) {
-      console.error('Fehler beim Aufnehmen des Fotos:', error);
-      this.showToast('Fehler beim Aufnehmen des Fotos');
+      if (image.base64String) {
+        this.recipeImage = `data:image/jpeg;base64,${image.base64String}`;
+      }
+    } catch (error: unknown) {
+      console.error('Fehler beim Bildauswahl:', error);
+      if (error instanceof Error && error.message.includes('User cancelled photos app')) {
+        return; // User cancelled, no error message needed
+      }
+      await this.showToast('Fehler beim Auswählen/Aufnehmen des Bildes');
     }
+  }
+
+  private async showToast(message: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 
   addIngredient() {
@@ -226,31 +276,30 @@ export class AddRecipePage {
 
     try {
       if (this.recipeImage) {
+        // Convert base64 image to blob
         const response = await fetch(this.recipeImage);
         const blob = await response.blob();
-        const file = new File([blob], 'recipe.jpg', { type: 'image/jpeg' });
+        const imageUrl = await this.supabaseService.uploadImage(blob);
         
-        const imageUrl = await this.supabaseService.uploadImage(file);
-        this.recipe.image = imageUrl || undefined;
+        if (imageUrl) {
+          this.recipe.image = imageUrl;
+        }
       }
 
-      await this.supabaseService.addRecipe(this.recipe);
+      const savedRecipe = await this.supabaseService.addRecipe(this.recipe);
+      
       await loading.dismiss();
-      await this.showToast('Rezept erfolgreich gespeichert');
-      await this.router.navigate(['/home']);
+      
+      if (savedRecipe) {
+        await this.showToast('Rezept erfolgreich gespeichert');
+        await this.router.navigate(['/home']);
+      } else {
+        await this.showToast('Fehler beim Speichern des Rezepts');
+      }
     } catch (error) {
       await loading.dismiss();
       console.error('Fehler beim Speichern des Rezepts:', error);
       await this.showToast('Fehler beim Speichern des Rezepts');
     }
-  }
-
-  private async showToast(message: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 2000,
-      position: 'bottom'
-    });
-    await toast.present();
   }
 }

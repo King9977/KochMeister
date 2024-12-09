@@ -278,7 +278,7 @@ export class SupabaseService {
       return null;
     }
   }
-  
+
   async deleteShoppingItem(id: string): Promise<boolean> {
     try {
       const { error } = await this.supabase
@@ -294,32 +294,28 @@ export class SupabaseService {
     }
   }
 
-  async uploadImage(file: File): Promise<string | null> {
+  async uploadImage(blob: Blob): Promise<string | null> {
     try {
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Nur Bilder sind erlaubt');
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
       const filePath = `public/${fileName}`;
-
+  
       const { error: uploadError } = await this.supabase.storage
         .from(this.bucketName)
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
-
+  
       if (uploadError) {
         console.error('Error uploading image:', uploadError);
         return null;
       }
-
+  
       const { data } = this.supabase.storage
         .from(this.bucketName)
         .getPublicUrl(filePath);
-
+  
       return data.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);

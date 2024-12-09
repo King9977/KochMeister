@@ -1,3 +1,4 @@
+// add-recipe.page.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +6,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonButtons, IonBackButton, IonButton, IonIcon,
   IonList, IonItem, IonLabel, IonInput, IonTextarea,
-  IonFab, IonFabButton
+  IonSelect, IonSelectOption
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -15,7 +16,8 @@ import {
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Recipe, Ingredient } from '../../interfaces/recipe.interface';
 import { SupabaseService } from '../../services/supabase.service';
-import { RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
+import { LoadingController, ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-add-recipe',
@@ -48,6 +50,16 @@ import { RouterModule } from '@angular/router';
           <ion-item>
             <ion-label position="stacked">Titel</ion-label>
             <ion-input [(ngModel)]="recipe.title" placeholder="z.B. Spaghetti Bolognese"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Kategorie</ion-label>
+            <ion-select [(ngModel)]="recipe.category" placeholder="Wähle eine Kategorie">
+              <ion-select-option value="breakfast">Frühstück</ion-select-option>
+              <ion-select-option value="main">Hauptgericht</ion-select-option>
+              <ion-select-option value="dessert">Dessert</ion-select-option>
+              <ion-select-option value="snack">Snack</ion-select-option>
+            </ion-select>
           </ion-item>
 
           <ion-item>
@@ -121,7 +133,6 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule,
     FormsModule,
     IonHeader,
     IonToolbar,
@@ -135,7 +146,9 @@ import { RouterModule } from '@angular/router';
     IonItem,
     IonLabel,
     IonInput,
-    IonTextarea
+    IonTextarea,
+    IonSelect,
+    IonSelectOption
   ]
 })
 export class AddRecipePage {
@@ -144,11 +157,17 @@ export class AddRecipePage {
     description: '',
     ingredients: [],
     steps: [],
-    cookingTime: 0
+    cookingTime: 0,
+    category: undefined
   };
   recipeImage: string | null = null;
 
-  constructor(private supabaseService: SupabaseService) {
+  constructor(
+    private supabaseService: SupabaseService,
+    private router: Router,
+    private loadingCtrl: LoadingController,
+    private toastCtrl: ToastController
+  ) {
     addIcons({
       cameraOutline,
       addOutline,
@@ -170,6 +189,7 @@ export class AddRecipePage {
       this.recipeImage = image.dataUrl ?? null;
     } catch (error) {
       console.error('Fehler beim Aufnehmen des Fotos:', error);
+      this.showToast('Fehler beim Aufnehmen des Fotos');
     }
   }
 
@@ -194,23 +214,43 @@ export class AddRecipePage {
   }
 
   async saveRecipe() {
+    if (!this.recipe.title) {
+      await this.showToast('Bitte gib einen Titel ein');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Rezept wird gespeichert...'
+    });
+    await loading.present();
+
     try {
       if (this.recipeImage) {
-        // Konvertiere das Base64-Bild in eine Datei
         const response = await fetch(this.recipeImage);
         const blob = await response.blob();
         const file = new File([blob], 'recipe.jpg', { type: 'image/jpeg' });
         
-        // Lade das Bild hoch
         const imageUrl = await this.supabaseService.uploadImage(file);
         this.recipe.image = imageUrl || undefined;
       }
 
-      // Speichere das Rezept
       await this.supabaseService.addRecipe(this.recipe);
-      window.location.href = '/home';
+      await loading.dismiss();
+      await this.showToast('Rezept erfolgreich gespeichert');
+      await this.router.navigate(['/home']);
     } catch (error) {
+      await loading.dismiss();
       console.error('Fehler beim Speichern des Rezepts:', error);
+      await this.showToast('Fehler beim Speichern des Rezepts');
     }
+  }
+
+  private async showToast(message: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 }

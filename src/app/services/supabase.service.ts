@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { Recipe } from '../interfaces/recipe.interface';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,8 @@ import { Recipe } from '../interfaces/recipe.interface';
 export class SupabaseService {
   private supabase: SupabaseClient;
   private bucketName = 'recipe-images';
-  private initPromise: Promise<void>;
+  private _recipes = new BehaviorSubject<Recipe[]>([]);
+  recipes$ = this._recipes.asObservable();
 
   constructor() {
     this.supabase = createClient(
@@ -25,42 +27,42 @@ export class SupabaseService {
         }
       }
     );
-
-    // Initialize the service and auth state
-    this.initPromise = this.initializeService();
+    this.loadInitialRecipes();
   }
 
-  private async initializeService(): Promise<void> {
+  private async loadInitialRecipes() {
     try {
-      const { data: { session }, error } = await this.supabase.auth.getSession();
-      if (error) throw error;
-
-      // Set up auth state change listener
-      this.supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') {
-          // Clear local storage on sign out
-          window.localStorage.removeItem(`sb-${environment.supabaseUrl}-auth-token`);
-        }
-      });
+      const recipes = await this.getRecipes();
+      this._recipes.next(recipes);
     } catch (error) {
-      console.error('Error initializing Supabase service:', error);
+      console.error('Error loading initial recipes:', error);
     }
   }
 
-  private async ensureInitialized(): Promise<void> {
-    await this.initPromise;
-  }
-
   async getRecipes(): Promise<Recipe[]> {
-    await this.ensureInitialized();
     try {
       const { data, error } = await this.supabase
         .from('recipes')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('Error fetching recipes:', error);
+        return [];
+      }
+
+      return data.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        ingredients: item.ingredients || [],
+        steps: item.steps || [],
+        cookingTime: item.cooking_time,
+        image: item.image_url,
+        category: item.category,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
     } catch (error) {
       console.error('Error fetching recipes:', error);
       return [];
@@ -68,7 +70,6 @@ export class SupabaseService {
   }
 
   async getRecipe(id: string): Promise<Recipe | null> {
-    await this.ensureInitialized();
     try {
       const { data, error } = await this.supabase
         .from('recipes')
@@ -76,8 +77,25 @@ export class SupabaseService {
         .eq('id', id)
         .single();
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching recipe:', error);
+        return null;
+      }
+
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        ingredients: data.ingredients || [],
+        steps: data.steps || [],
+        cookingTime: data.cooking_time,
+        image: data.image_url,
+        category: data.category,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
       console.error('Error fetching recipe:', error);
       return null;
@@ -85,57 +103,67 @@ export class SupabaseService {
   }
 
   async addRecipe(recipe: Recipe): Promise<Recipe | null> {
-    await this.ensureInitialized();
     try {
+      const recipeData = {
+        title: recipe.title,
+        description: recipe.description,
+        ingredients: recipe.ingredients || [],
+        steps: recipe.steps || [],
+        cooking_time: recipe.cookingTime,
+        image_url: recipe.image,
+        category: recipe.category
+      };
+
       const { data, error } = await this.supabase
         .from('recipes')
-        .insert({ 
-          ...recipe, 
-          created_at: new Date().toISOString(),
-          ingredients: recipe.ingredients || [],
-          steps: recipe.steps || []
-        })
+        .insert([recipeData])
         .select()
         .single();
-      
-      if (error) throw error;
-      return data;
+
+      if (error) {
+        console.error('Error inserting recipe:', error);
+        return null;
+      }
+
+      const newRecipe = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        ingredients: data.ingredients || [],
+        steps: data.steps || [],
+        cookingTime: data.cooking_time,
+        image: data.image_url,
+        category: data.category,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+
+      const currentRecipes = this._recipes.value;
+      this._recipes.next([newRecipe, ...currentRecipes]);
+
+      return newRecipe;
     } catch (error) {
       console.error('Error adding recipe:', error);
       return null;
     }
   }
 
-  async updateRecipe(id: string, recipe: Partial<Recipe>): Promise<Recipe | null> {
-    await this.ensureInitialized();
-    try {
-      const { data, error } = await this.supabase
-        .from('recipes')
-        .update({
-          ...recipe,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating recipe:', error);
-      return null;
-    }
-  }
-
   async deleteRecipe(id: string): Promise<boolean> {
-    await this.ensureInitialized();
     try {
       const { error } = await this.supabase
         .from('recipes')
         .delete()
         .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting recipe:', error);
+        return false;
+      }
+
+      // Update local recipes list
+      const currentRecipes = this._recipes.value;
+      this._recipes.next(currentRecipes.filter(recipe => recipe.id !== id));
       
-      if (error) throw error;
       return true;
     } catch (error) {
       console.error('Error deleting recipe:', error);
@@ -144,7 +172,6 @@ export class SupabaseService {
   }
 
   async uploadImage(file: File): Promise<string | null> {
-    await this.ensureInitialized();
     try {
       if (!file.type.startsWith('image/')) {
         throw new Error('Nur Bilder sind erlaubt');
@@ -161,13 +188,16 @@ export class SupabaseService {
           upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return null;
+      }
 
-      const { data: { publicUrl } } = this.supabase.storage
+      const { data } = this.supabase.storage
         .from(this.bucketName)
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return data.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       return null;

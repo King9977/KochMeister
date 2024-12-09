@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -17,6 +17,7 @@ import { Recipe, Ingredient, ShoppingListItem } from '../../interfaces/recipe.in
 import { SupabaseService } from '../../services/supabase.service';
 import { StorageService } from '../../services/storage.service';
 import { RouterModule } from '@angular/router';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-recipe-detail',
@@ -88,12 +89,12 @@ import { RouterModule } from '@angular/router';
     </ion-content>
 
     <ion-alert
-      [isOpen]="showTimerAlert"
-      header="Timer"
-      [message]="timerMessage"
-      [buttons]="['OK']"
-      (didDismiss)="showTimerAlert = false"
-    ></ion-alert>
+    [isOpen]="showTimerAlert"
+    header="Timer"
+    [message]="timerMessage"
+    [buttons]="['OK']"
+    (didDismiss)="handleAlertDismiss()"
+></ion-alert>
   `,
   styleUrls: ['./recipe-detail.page.scss'],
   standalone: true,
@@ -118,7 +119,7 @@ import { RouterModule } from '@angular/router';
     IonAlert
   ]
 })
-export class RecipeDetailPage implements OnInit {
+export class RecipeDetailPage implements OnInit, OnDestroy {
   recipe: Recipe | null = null;
   showTimerAlert = false;
   timerMessage = '';
@@ -127,7 +128,8 @@ export class RecipeDetailPage implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private supabaseService: SupabaseService,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private notificationService: NotificationService
   ) {
     addIcons({
       timerOutline,
@@ -211,17 +213,60 @@ export class RecipeDetailPage implements OnInit {
     }
   }
 
-  startTimer() {
+  async startTimer() {
     if (this.recipe?.cookingTime) {
-      let timeLeft = this.recipe.cookingTime * 60;
-      this.timer = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) {
-          clearInterval(this.timer);
-          this.timerMessage = 'Timer abgelaufen!';
-          this.showTimerAlert = true;
+      // Erst alten Timer aufräumen falls vorhanden
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+
+      const minutes = this.recipe.cookingTime;
+      const title = this.recipe.title || 'Rezept';
+      let timeLeft = minutes * 60;
+      
+      try {
+        // Timer im UI starten
+        this.timer = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            clearInterval(this.timer);
+            this.timer = null;
+            this.timerMessage = 'Timer abgelaufen!';
+            this.showTimerAlert = true;
+          }
+        }, 1000);
+
+        // Notification planen
+        const notificationScheduled = await this.notificationService.scheduleNotification(
+          title,
+          minutes * 60
+        );
+
+        if (!notificationScheduled) {
+          console.log('Benachrichtigungen nicht verfügbar - nur UI Timer wird verwendet');
         }
-      }, 1000);
+      } catch (error) {
+        console.error('Fehler beim Starten des Timers:', error);
+      }
+    }
+  }
+
+  // Wichtig: Timer aufräumen wenn die Komponente zerstört wird
+  ngOnDestroy(): void {  // void Return type hinzufügen
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  // Alert Handler hinzufügen
+  handleAlertDismiss() {
+    this.showTimerAlert = false;
+    // Sicherstellen dass der Timer gestoppt ist
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
     }
   }
 

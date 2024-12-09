@@ -218,27 +218,28 @@ export class SupabaseService {
       return null;
     }
   }
-  
-  
-  
 
   async updateShoppingList(items: ShoppingListItem[]) {
     try {
+      // Formatiere die Items für Supabase
+      const formattedItems = items.map(item => ({
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        unit: item.unit,
+        checked: item.checked,
+        // Stelle sicher, dass created_at immer einen Wert hat
+        created_at: item.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString() // Aktualisiere immer das updated_at Feld
+      }));
+  
       const { error } = await this.supabase
         .from('shopping_list_items')
-        .upsert(
-          items.map(item => ({
-            id: item.id,
-            name: item.name,
-            amount: item.amount,
-            unit: item.unit,
-            checked: item.checked,
-            created_at: item.createdAt,
-            updated_at: item.updatedAt
-          })),
-          { onConflict: 'id' }
-        );
-
+        .upsert(formattedItems, {
+          onConflict: 'id',
+          ignoreDuplicates: false
+        });
+  
       if (error) throw error;
     } catch (error) {
       console.error('Error updating shopping list:', error);
@@ -246,6 +247,38 @@ export class SupabaseService {
     }
   }
 
+  async updateShoppingItem(item: ShoppingListItem): Promise<ShoppingListItem | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('shopping_list_items')
+        .update({
+          name: item.name,
+          amount: item.amount,
+          unit: item.unit,
+          checked: item.checked,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', item.id)
+        .select()
+        .single();
+  
+      if (error) throw error;
+      
+      return {
+        id: data.id,
+        name: data.name,
+        amount: data.amount,
+        unit: data.unit,
+        checked: data.checked,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren des Artikels:', error);
+      return null;
+    }
+  }
+  
   async deleteShoppingItem(id: string): Promise<boolean> {
     try {
       const { error } = await this.supabase

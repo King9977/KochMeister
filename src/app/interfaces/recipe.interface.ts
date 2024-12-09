@@ -17,6 +17,7 @@ export interface Ingredient {
   amount: string;
   unit: string;
   name: string;
+  isSelected?: boolean;  // Added this property
 }
 
 export interface UserSettings {
@@ -25,15 +26,6 @@ export interface UserSettings {
   darkMode: boolean;
   notificationsEnabled: boolean;
   language: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface ShoppingList {
-  id?: string;
-  userId: string;
-  name: string;
-  items: ShoppingListItem[];
   createdAt?: string;
   updatedAt?: string;
 }

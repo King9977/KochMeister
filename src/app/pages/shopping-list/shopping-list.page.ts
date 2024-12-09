@@ -145,51 +145,67 @@ export class ShoppingListPage implements OnInit {
   }
 
   async loadShoppingList() {
-    const offlineList = await this.storageService.getShoppingList() || [];
-    this.shoppingList = offlineList;
-
     try {
+      // Versuche zuerst die Online-Liste zu holen
       const onlineList = await this.supabaseService.fetchShoppingList();
       if (onlineList && onlineList.length > 0) {
-        this.shoppingList = this.mergeLists(offlineList, onlineList);
+        // Verwende direkt die Online-Liste
+        this.shoppingList = onlineList;
+        // Aktualisiere den lokalen Speicher
         await this.storageService.saveShoppingList(this.shoppingList);
+      } else {
+        // Falls keine Online-Liste verfügbar, verwende die Offline-Liste
+        this.shoppingList = await this.storageService.getShoppingList() || [];
       }
     } catch (error) {
-      console.error('Error fetching online list:', error);
+      console.error('Error fetching shopping list:', error);
+      // Bei Fehlern verwende die Offline-Liste
+      this.shoppingList = await this.storageService.getShoppingList() || [];
     }
   }
 
   async saveItem() {
-    if (this.currentItem.name.trim() === '') return; // Validierung: Name darf nicht leer sein.
+    if (this.currentItem.name.trim() === '') return;
   
-    this.currentItem.updatedAt = new Date().toISOString();
-  
+    const now = new Date().toISOString();
+    
     if (!this.isEditing) {
       // Neuer Artikel
-      this.currentItem.createdAt = new Date().toISOString();
+      const newItem: ShoppingListItem = {
+        ...this.currentItem,
+        createdAt: now,
+        updatedAt: now
+      };
+  
       try {
-        const newItem = await this.supabaseService.addShoppingItem(this.currentItem);
-        if (newItem) {
-          this.shoppingList.unshift(newItem); // Füge neuen Artikel zur Liste hinzu.
+        const savedItem = await this.supabaseService.addShoppingItem(newItem);
+        if (savedItem) {
+          this.shoppingList.unshift(savedItem);
         }
       } catch (error) {
         console.error('Fehler beim Hinzufügen des Artikels:', error);
       }
     } else {
       // Artikel bearbeiten
-      const index = this.shoppingList.findIndex(item => item.id === this.currentItem.id);
+      const updatedItem: ShoppingListItem = {
+        ...this.currentItem,
+        updatedAt: now
+      };
+  
+      const index = this.shoppingList.findIndex(item => item.id === updatedItem.id);
       if (index > -1) {
-        this.shoppingList[index] = { ...this.currentItem };
+        this.shoppingList[index] = updatedItem;
         try {
-          await this.supabaseService.updateShoppingList(this.shoppingList);
+          // Aktualisiere nur den einen Artikel
+          await this.supabaseService.updateShoppingList([updatedItem]);
         } catch (error) {
           console.error('Fehler beim Aktualisieren des Artikels:', error);
         }
       }
     }
   
+    await this.storageService.saveShoppingList(this.shoppingList);
     this.closeModal();
-    await this.storageService.saveShoppingList(this.shoppingList); // Speichern Sie lokal für Offline-Support.
   }
   
 
@@ -239,23 +255,32 @@ export class ShoppingListPage implements OnInit {
   }
 
   private mergeLists(offlineList: ShoppingListItem[], onlineList: ShoppingListItem[]): ShoppingListItem[] {
-    const merged = [...offlineList];
-
-    onlineList.forEach(onlineItem => {
-      const existingIndex = merged.findIndex(item => item.id === onlineItem.id);
-
-      if (existingIndex === -1) {
-        merged.push(onlineItem);
+    // Erstelle eine Map basierend auf der ID
+    const itemMap = new Map<string, ShoppingListItem>();
+  
+    // Füge Offline-Items hinzu
+    offlineList.forEach(item => {
+      if (item.id) {
+        itemMap.set(item.id, item);
       } else {
-        const onlineDate = new Date(onlineItem.updatedAt || '');
-        const offlineDate = new Date(merged[existingIndex].updatedAt || '');
-
-        if (onlineDate > offlineDate) {
-          merged[existingIndex] = onlineItem;
+        // Wenn kein ID vorhanden, nutze einen temporären Schlüssel
+        const tempKey = `${item.name}-${item.amount}-${item.unit}-${item.createdAt}`;
+        itemMap.set(tempKey, item);
+      }
+    });
+  
+    // Füge Online-Items hinzu
+    onlineList.forEach(onlineItem => {
+      if (onlineItem.id) {
+        const existingItem = itemMap.get(onlineItem.id);
+        if (!existingItem || 
+            (onlineItem.updatedAt && existingItem.updatedAt && 
+             new Date(onlineItem.updatedAt) > new Date(existingItem.updatedAt))) {
+          itemMap.set(onlineItem.id, onlineItem);
         }
       }
     });
-
-    return merged;
+  
+    return Array.from(itemMap.values());
   }
 }

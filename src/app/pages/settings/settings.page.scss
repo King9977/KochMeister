@@ -1,0 +1,42 @@
+ion-item {
+    --padding-start: 16px;
+    
+    ion-icon {
+      font-size: 24px;
+      color: var(--ion-color-primary);
+    }
+  
+    ion-label {
+      h2 {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      
+      p {
+        font-size: 14px;
+        color: var(--ion-color-medium);
+      }
+    }
+  }
+  
+  .offline-storage-info {
+    padding: 24px 16px;
+    
+    h3 {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      color: var(--ion-color-medium);
+      margin: 0 0 16px 0;
+    }
+  }
+  
+  ion-toggle {
+    --background: var(--ion-color-medium);
+    --background-checked: var(--ion-color-primary);
+    --handle-background: var(--ion-color-light);
+    --handle-background-checked: var(--ion-color-light);
+  }

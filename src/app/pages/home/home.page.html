@@ -1,0 +1,54 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Meine Rezepte</ion-title>
+    <ion-button slot="end" fill="clear" (click)="navigateToAddRecipe()">
+      <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+    </ion-button>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [debounce]="500"
+      (ionInput)="handleSearch($event)"
+      placeholder="Rezepte suchen..."
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="recipe-grid">
+    <ion-card *ngFor="let recipe of filteredRecipes" (click)="openRecipe(recipe)">
+      <img [src]="recipe.image || 'assets/placeholder-recipe.jpg'" alt="recipe image"/>
+      <ion-card-header>
+        <ion-card-title>{{ recipe.title }}</ion-card-title>
+        <ion-card-subtitle>
+          <ion-icon name="time-outline"></ion-icon>
+          {{ recipe.cookingTime }} Min.
+        </ion-card-subtitle>
+      </ion-card-header>
+    </ion-card>
+  </div>
+
+  <div *ngIf="!isOnline" class="offline-banner">
+    <ion-icon name="cloud-offline-outline"></ion-icon>
+    <p>Offline Modus - Nur gespeicherte Rezepte verfügbar</p>
+  </div>
+</ion-content>
+
+<ion-tab-bar slot="bottom">
+  <ion-tab-button tab="home" selected>
+    <ion-icon name="restaurant-outline"></ion-icon>
+    <ion-label>Rezepte</ion-label>
+  </ion-tab-button>
+  <ion-tab-button tab="shopping-list" [routerLink]="['/shopping-list']">
+    <ion-icon name="list-outline"></ion-icon>
+    <ion-label>Einkaufsliste</ion-label>
+  </ion-tab-button>
+  <ion-tab-button tab="settings" [routerLink]="['/settings']">
+    <ion-icon name="settings-outline"></ion-icon>
+    <ion-label>Einstellungen</ion-label>
+  </ion-tab-button>
+</ion-tab-bar>

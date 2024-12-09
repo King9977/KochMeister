@@ -1,0 +1,36 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Einstellungen</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item>
+      <ion-icon name="moon-outline" slot="start"></ion-icon>
+      <ion-label>Dark Mode</ion-label>
+      <ion-toggle [(ngModel)]="darkMode" (ionChange)="toggleDarkMode($event)">
+      </ion-toggle>
+    </ion-item>
+
+    <ion-item>
+      <ion-icon name="notifications-outline" slot="start"></ion-icon>
+      <ion-label>
+        <h2>Benachrichtigungen</h2>
+        <p>Timer und App-Updates</p>
+      </ion-label>
+      <ion-toggle [(ngModel)]="notifications"></ion-toggle>
+    </ion-item>
+
+    <ion-item-divider>Offline-Speicher</ion-item-divider>
+    <ion-item>
+      <ion-label>
+        <h2>Gespeicherte Rezepte</h2>
+        <p>{{ savedRecipesCount }} Rezepte</p>
+      </ion-label>
+      <ion-button slot="end" fill="outline" (click)="clearOfflineData()">
+        Cache leeren
+      </ion-button>
+    </ion-item>
+  </ion-list>
+</ion-content>

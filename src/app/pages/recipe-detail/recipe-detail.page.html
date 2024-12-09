@@ -1,0 +1,53 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ recipe?.title }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="shareRecipe()">
+        <ion-icon name="share-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="deleteRecipe()">
+        <ion-icon name="trash-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="recipe-image">
+    <img [src]="recipe?.image || 'assets/placeholder.jpg'" [alt]="recipe?.title">
+  </div>
+
+  <div class="recipe-content">
+    <div class="section">
+      <h2>Zutaten</h2>
+      <ion-list>
+        <ion-item *ngFor="let ingredient of recipe?.ingredients">
+          <ion-checkbox slot="start"></ion-checkbox>
+          <ion-label>
+            {{ ingredient.amount }} {{ ingredient.unit }} {{ ingredient.name }}
+          </ion-label>
+        </ion-item>
+      </ion-list>
+      <ion-button expand="block" fill="outline" (click)="addToShoppingList()">
+        <ion-icon name="cart-outline" slot="start"></ion-icon>
+        Zur Einkaufsliste
+      </ion-button>
+    </div>
+
+    <div class="section">
+      <h2>Zubereitung</h2>
+      <ol>
+        <li *ngFor="let step of recipe?.steps">{{ step }}</li>
+      </ol>
+    </div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="startTimer()">
+      <ion-icon name="timer-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

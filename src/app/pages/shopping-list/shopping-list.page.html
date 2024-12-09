@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Einkaufsliste</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="clearList()">
+        <ion-icon name="trash-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item-sliding *ngFor="let item of shoppingList">
+      <ion-item>
+        <ion-checkbox [(ngModel)]="item.checked" (ionChange)="updateItem(item)">
+        </ion-checkbox>
+        <ion-label [class.checked]="item.checked">
+          {{ item.amount }} {{ item.unit }} {{ item.name }}
+        </ion-label>
+      </ion-item>
+      <ion-item-options>
+        <ion-item-option color="danger" (click)="removeItem(item)">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+
+  <div *ngIf="shoppingList.length === 0" class="empty-state">
+    <p>Keine Artikel in der Einkaufsliste</p>
+  </div>
+</ion-content>

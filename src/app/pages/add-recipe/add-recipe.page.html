@@ -1,0 +1,61 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Neues Rezept</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="saveRecipe()">
+        <ion-icon name="save-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="image-container" (click)="takePicture()">
+    <img [src]="recipeImage || 'assets/placeholder.jpg'" alt="recipe">
+    <div class="image-overlay">
+      <ion-icon name="camera-outline"></ion-icon>
+      <p>Foto hinzufügen</p>
+    </div>
+  </div>
+
+  <ion-list>
+    <ion-item>
+      <ion-label position="stacked">Titel</ion-label>
+      <ion-input [(ngModel)]="recipe.title" placeholder="z.B. Spaghetti Bolognese"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Kochzeit (Minuten)</ion-label>
+      <ion-input type="number" [(ngModel)]="recipe.cookingTime"></ion-input>
+    </ion-item>
+
+    <ion-item-divider>Zutaten</ion-item-divider>
+    <ion-item *ngFor="let ingredient of recipe.ingredients; let i = index">
+      <ion-input [(ngModel)]="ingredient.amount" placeholder="Menge"></ion-input>
+      <ion-input [(ngModel)]="ingredient.unit" placeholder="Einheit"></ion-input>
+      <ion-input [(ngModel)]="ingredient.name" placeholder="Zutat"></ion-input>
+      <ion-button slot="end" fill="clear" (click)="removeIngredient(i)">
+        <ion-icon name="trash-outline" color="danger"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-button expand="block" fill="clear" (click)="addIngredient()">
+      <ion-icon name="add-outline" slot="start"></ion-icon>
+      Zutat hinzufügen
+    </ion-button>
+
+    <ion-item-divider>Zubereitung</ion-item-divider>
+    <ion-item *ngFor="let step of recipe.steps; let i = index">
+      <ion-textarea [(ngModel)]="recipe.steps[i]" placeholder="Schritt beschreiben..."></ion-textarea>
+      <ion-button slot="end" fill="clear" (click)="removeStep(i)">
+        <ion-icon name="trash-outline" color="danger"></ion-icon>
+      </ion-button>
+    </ion-item>
+    <ion-button expand="block" fill="clear" (click)="addStep()">
+      <ion-icon name="add-outline" slot="start"></ion-icon>
+      Schritt hinzufügen
+    </ion-button>
+  </ion-list>
+</ion-content>

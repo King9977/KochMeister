@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -18,4 +18,9 @@ import { RouterModule } from '@angular/router';
     IonRouterOutlet
   ]
 })
-export class AppComponent {}
+export class AppComponent implements OnInit {
+
+  ngOnInit() {
+    document.documentElement.classList.toggle('ion-palette-dark', localStorage.getItem("darkmode") === "true")
+  }
+}

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle,
-  IonIcon, IonButton
+  IonIcon, IonButton, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -11,8 +11,12 @@ import {
   languageOutline, informationCircleOutline 
 } from 'ionicons/icons';
 import { StorageService } from '../../services/storage.service';
+import { NotificationService } from '../../services/notification.service';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Platform } from '@ionic/angular';
+import { Capacitor } from '@capacitor/core';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-settings',
@@ -40,7 +44,10 @@ import { RouterModule } from '@angular/router';
             <h2>Benachrichtigungen</h2>
             <p>Timer und App-Updates</p>
           </ion-label>
-          <ion-toggle [(ngModel)]="notifications"></ion-toggle>
+          <ion-toggle 
+            [(ngModel)]="notifications"
+            (ionChange)="toggleNotifications($event)">
+          </ion-toggle>
         </ion-item>
 
         <ion-item button (click)="selectLanguage()">
@@ -89,11 +96,16 @@ import { RouterModule } from '@angular/router';
 })
 export class SettingsPage implements OnInit {
   darkMode = false;
-  notifications = true;
+  notifications = false;
   currentLanguage = 'Deutsch';
   savedRecipesCount = 0;
 
-  constructor(private storageService: StorageService) {
+  constructor(
+    private storageService: StorageService,
+    private notificationService: NotificationService,
+    private alertController: AlertController,
+    private platform: Platform
+  ) {
     addIcons({
       moonOutline,
       notificationsOutline,
@@ -103,24 +115,59 @@ export class SettingsPage implements OnInit {
   }
 
   async ngOnInit() {
-    this.darkMode = await this.storageService.getDarkMode();
+    this.darkMode = localStorage.getItem("darkmode") === "true";
+    document.documentElement.classList.toggle('ion-palette-dark', this.darkMode);
     const recipes = await this.storageService.getOfflineRecipes();
     this.savedRecipesCount = recipes.length;
+    this.notifications = await this.notificationService.areNotificationsEnabled();
   }
 
   async toggleDarkMode(event: any) {
     const isDark = event.detail.checked;
-    document.body.classList.toggle('dark', isDark);
-    await this.storageService.setDarkMode(isDark);
+    document.documentElement.classList.toggle('ion-palette-dark', isDark);
+    localStorage.setItem("darkmode", isDark);
   }
 
+  async toggleNotifications(event: any) {
+    const isEnabled = event.detail.checked;
+    if (isEnabled) {
+      const granted = await this.notificationService.requestNotificationPermission();
+      this.notifications = granted;
+      if (!granted) {
+        const alert = await this.alertController.create({
+          header: 'Benachrichtigungen',
+          message: 'Bitte aktiviere die Benachrichtigungen in den Systemeinstellungen deines Geräts.',
+          buttons: [
+            {
+              text: 'Zu den Einstellungen',
+              handler: () => {
+                if (this.platform.is('android')) {
+                  // Öffne Android App Settings mit korrekter Syntax
+                  Capacitor.Plugins['App']['openUrl']({
+                    url: `package:${environment.applicationId}`
+                  }).catch((error: Error) => console.error('Error opening settings:', error));
+                }
+              }
+            },
+            {
+              text: 'Abbrechen',
+              role: 'cancel',
+              handler: () => {
+                this.notifications = false;
+              }
+            }
+          ]
+        });
+        await alert.present();
+      }
+    }
+  }
+  
   selectLanguage() {
-    // Implementierung der Sprachauswahl
     console.log('Sprachauswahl öffnen');
   }
 
   showAbout() {
-    // Zeige Info-Dialog
     console.log('Über die App anzeigen');
   }
 

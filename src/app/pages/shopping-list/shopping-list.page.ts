@@ -5,10 +5,10 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonCheckbox, IonButton,
   IonFab, IonFabButton, IonIcon, IonModal, IonInput,
-  IonButtons, IonLabel
+  IonButtons, IonLabel, IonBackButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { addOutline, trashOutline, closeOutline, pencilOutline } from 'ionicons/icons';
+import { addOutline, trashOutline, closeOutline, pencilOutline, chevronBackOutline } from 'ionicons/icons';
 import { ShoppingListItem } from '../../interfaces/recipe.interface';
 import { StorageService } from '../../services/storage.service';
 import { SupabaseService } from '../../services/supabase.service';
@@ -18,6 +18,9 @@ import { SupabaseService } from '../../services/supabase.service';
   template: `
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/home"></ion-back-button>
+        </ion-buttons>
         <ion-title>Einkaufsliste</ion-title>
         <ion-buttons slot="end">
           <ion-button (click)="clearCheckedItems()">
@@ -113,7 +116,8 @@ import { SupabaseService } from '../../services/supabase.service';
     IonModal,
     IonInput,
     IonButtons,
-    IonLabel
+    IonLabel,
+    IonBackButton
   ]
 })
 export class ShoppingListPage implements OnInit {
@@ -126,7 +130,13 @@ export class ShoppingListPage implements OnInit {
     private storageService: StorageService,
     private supabaseService: SupabaseService
   ) {
-    addIcons({ addOutline, trashOutline, closeOutline, pencilOutline });
+    addIcons({ 
+      addOutline, 
+      trashOutline, 
+      closeOutline, 
+      pencilOutline,
+      chevronBackOutline 
+    });
   }
 
   private getEmptyItem(): ShoppingListItem {
@@ -207,7 +217,6 @@ export class ShoppingListPage implements OnInit {
     await this.storageService.saveShoppingList(this.shoppingList);
     this.closeModal();
   }
-  
 
   async saveList() {
     await this.storageService.saveShoppingList(this.shoppingList);

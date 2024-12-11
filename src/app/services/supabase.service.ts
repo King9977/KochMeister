@@ -9,7 +9,7 @@ import { ShoppingListItem } from '../interfaces/recipe.interface';
   providedIn: 'root'
 })
 export class SupabaseService {
-  private supabase: SupabaseClient;
+  public supabase: SupabaseClient;
   private bucketName = 'recipe-images';
   private _recipes = new BehaviorSubject<Recipe[]>([]);
   recipes$ = this._recipes.asObservable();

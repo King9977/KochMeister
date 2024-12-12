@@ -9,7 +9,8 @@ import {
   IonContent,
   IonButton, 
   IonIcon, 
-  IonButtons
+  IonButtons,
+  IonBackButton  
 } from '@ionic/angular/standalone';
 import { Geolocation } from '@capacitor/geolocation';
 import { addIcons } from 'ionicons';
@@ -28,6 +29,8 @@ import { locationOutline } from 'ionicons/icons';
     IonContent,
     IonButton,
     IonIcon,
+    IonButtons,
+    IonBackButton 
   ]
 })
 export class LocationPage implements OnInit {

@@ -1,11 +1,11 @@
-// app.routes.ts
 import { Routes } from '@angular/router';
+import { SplashPage } from './pages/splash/splash.page';
 import { HomePage } from './pages/home/home.page';
 
 export const routes: Routes = [
   {
     path: '',
-    component: HomePage
+    component: SplashPage
   },
   {
     path: 'home',
@@ -26,6 +26,10 @@ export const routes: Routes = [
   {
     path: 'settings',
     loadComponent: () => import('./pages/settings/settings.page').then(m => m.SettingsPage)
+  },
+  {
+    path: 'location',
+    loadComponent: () => import('./pages/location/location.page').then(m => m.LocationPage)
   },
   {
     path: '**',  // Wildcard route für nicht-existierende Pfade

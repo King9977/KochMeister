@@ -1,45 +1,17 @@
 .splash-container {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background-color: var(--ion-background-color);
-  
-    .logo-container {
-      animation: fadeIn 1.5s ease-in;
-      
-      ion-icon {
-        font-size: 84px;
-        color: var(--ion-color-primary);
-      }
-  
-      h1 {
-        font-size: 32px;
-        font-weight: bold;
-        margin: 20px 0 10px;
-        color: var(--ion-color-dark);
-      }
-  
-      p {
-        font-size: 18px;
-        color: var(--ion-color-medium);
-        margin: 0;
-      }
-    }
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  :host {
-    background-color: var(--ion-background-color);
-  }
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  flex-direction: column;
+}
+
+.logo-container {
+  text-align: center;
+}
+
+.splash-logo {
+  width: 150px; /* Größe des Logos anpassen */
+  height: auto;
+  margin-bottom: 20px;
+}

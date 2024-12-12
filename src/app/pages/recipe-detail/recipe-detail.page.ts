@@ -239,15 +239,6 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
                 title,
                 minutes
               );
-  
-              if (notificationScheduled) {
-                const successAlert = await this.alertController.create({
-                  header: 'Timer gestartet',
-                  message: `Timer wurde für ${minutes} Minuten gestellt.`,
-                  buttons: ['OK']
-                });
-                await successAlert.present();
-              }
             } catch (error) {
               console.error('Fehler beim Starten des Timers:', error);
               const errorAlert = await this.alertController.create({

@@ -19,6 +19,7 @@ import { Platform } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { environment } from '../../../environments/environment';
+import { Preferences } from '@capacitor/preferences';
 
 @Component({
   selector: 'app-settings',
@@ -106,6 +107,7 @@ export class SettingsPage implements OnInit {
   notifications = false;
   currentLanguage = 'Deutsch';
   savedRecipesCount = 0;
+  private readonly DARK_MODE_KEY = 'darkmode';
 
   constructor(
     private storageService: StorageService,
@@ -123,16 +125,19 @@ export class SettingsPage implements OnInit {
   }
 
   async ngOnInit() {
-    this.darkMode = localStorage.getItem("darkmode") === "true";
+    // Load dark mode setting
+    const { value } = await Preferences.get({ key: this.DARK_MODE_KEY });
+    this.darkMode = value === 'true';
     document.documentElement.classList.toggle('ion-palette-dark', this.darkMode);
-    const recipes = await this.storageService.getOfflineRecipes();
-    this.savedRecipesCount = recipes.length;
     
-    // Prüfe den tatsächlichen System-Status beim Laden
+    // Load saved recipes count
+    const recipesCount = await this.storageService.getSavedRecipesCount();
+    this.savedRecipesCount = recipesCount;
+    
+    // Check notification status
     await this.checkNotificationStatus();
   }
 
-  // Neue Methode zum Prüfen des Benachrichtigungsstatus
   private async checkNotificationStatus() {
     if (Capacitor.isNativePlatform()) {
       const status = await LocalNotifications.checkPermissions();
@@ -140,6 +145,20 @@ export class SettingsPage implements OnInit {
     } else {
       this.notifications = false;
     }
+  }
+
+  async toggleDarkMode(event: any) {
+    const isDark = event.detail.checked;
+    document.documentElement.classList.toggle('ion-palette-dark', isDark);
+    
+    // Save dark mode setting
+    await Preferences.set({
+      key: this.DARK_MODE_KEY,
+      value: isDark.toString()
+    });
+    
+    // Also update in storage service for app-wide consistency
+    await this.storageService.setDarkMode(isDark);
   }
 
   async toggleNotifications(event: any) {
@@ -152,7 +171,6 @@ export class SettingsPage implements OnInit {
         this.notifications = false;
       }
     } else {
-      // Sofort zurück auf true setzen
       event.target.checked = true;
       this.notifications = true;
       
@@ -176,12 +194,6 @@ export class SettingsPage implements OnInit {
       await alert.present();
     }
   }
-
-  async toggleDarkMode(event: any) {
-    const isDark = event.detail.checked;
-    document.documentElement.classList.toggle('ion-palette-dark', isDark);
-    localStorage.setItem("darkmode", isDark);
-  }
   
   selectLanguage() {
     console.log('Sprachauswahl öffnen');
@@ -192,8 +204,7 @@ export class SettingsPage implements OnInit {
   }
 
   async clearOfflineData() {
-    await this.storageService.saveOfflineRecipes([]);
-    await this.storageService.clearShoppingList();
+    await this.storageService.clearAllData();
     this.savedRecipesCount = 0;
   }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, 
   IonButton, IonIcon, IonSearchbar, IonCard, 
@@ -16,7 +16,6 @@ import {
 } from 'ionicons/icons';
 import { Recipe } from '../../interfaces/recipe.interface';
 import { SupabaseService } from '../../services/supabase.service';
-import { StorageService } from '../../services/storage.service';
 import { Network } from '@capacitor/network';
 
 @Component({
@@ -107,7 +106,8 @@ export class HomePage implements OnInit {
 
   constructor(
     private supabaseService: SupabaseService,
-    private storageService: StorageService
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     addIcons({
       addOutline,
@@ -122,6 +122,13 @@ export class HomePage implements OnInit {
 
   async ngOnInit() {
     await this.checkNetworkStatus();
+    
+    this.route.queryParams.subscribe(params => {
+      if (params['refresh'] === 'true') {
+        this.loadRecipes();
+      }
+    });
+    
     await this.loadRecipes();
   }
 
@@ -139,10 +146,7 @@ export class HomePage implements OnInit {
     try {
       if (this.isOnline) {
         this.recipes = await this.supabaseService.getRecipes();
-        await this.storageService.saveOfflineRecipes(this.recipes);
-      } else {
-        this.recipes = await this.storageService.getOfflineRecipes();
-      }
+      } 
       this.filteredRecipes = [...this.recipes];
     } catch (error) {
       console.error('Fehler beim Laden der Rezepte:', error);
@@ -163,10 +167,10 @@ export class HomePage implements OnInit {
   }
 
   navigateToAddRecipe() {
-    window.location.href = '/add-recipe';
+    this.router.navigate(['/add-recipe']);
   }
 
   openRecipe(recipe: Recipe) {
-    window.location.href = `/recipe-detail/${recipe.id}`;
+    this.router.navigate(['/recipe-detail', recipe.id]);
   }
 }

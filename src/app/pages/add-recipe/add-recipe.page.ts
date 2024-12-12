@@ -268,15 +268,14 @@ export class AddRecipePage {
       await this.showToast('Bitte gib einen Titel ein');
       return;
     }
-
+  
     const loading = await this.loadingCtrl.create({
       message: 'Rezept wird gespeichert...'
     });
     await loading.present();
-
+  
     try {
       if (this.recipeImage) {
-        // Convert base64 image to blob
         const response = await fetch(this.recipeImage);
         const blob = await response.blob();
         const imageUrl = await this.supabaseService.uploadImage(blob);
@@ -285,14 +284,19 @@ export class AddRecipePage {
           this.recipe.image = imageUrl;
         }
       }
-
+  
       const savedRecipe = await this.supabaseService.addRecipe(this.recipe);
       
       await loading.dismiss();
       
       if (savedRecipe) {
         await this.showToast('Rezept erfolgreich gespeichert');
-        await this.router.navigate(['/home']);
+        await this.router.navigate(['/home'], { 
+          queryParams: { 
+            refresh: 'true',
+            newRecipe: savedRecipe.id 
+          }
+        });
       } else {
         await this.showToast('Fehler beim Speichern des Rezepts');
       }

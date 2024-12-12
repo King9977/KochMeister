@@ -1,0 +1,15 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Supermarkt Finder</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="map-container">
+    <div id="map"></div>
+    <ion-button expand="block" (click)="getCurrentLocation()" class="find-button">
+      <ion-icon name="location-outline" slot="start"></ion-icon>
+      STANDORT ERMITTELN
+    </ion-button>
+  </div>
+</ion-content>

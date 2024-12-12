@@ -2,17 +2,17 @@
 export interface Recipe {
   id?: string;
   title: string;
-  description?: string;
-  ingredients: Ingredient[];
-  steps: string[];
-  cookingTime: number;
+  description: string;
   image?: string;
   category?: string;
+  cookingTime: number;
+  ingredients: Ingredient[];
+  steps: string[];
   createdAt?: string;
   updatedAt?: string;
   userId?: string;
+  isOffline?: boolean;
 }
-
 export interface Ingredient {
   amount: string;
   unit: string;

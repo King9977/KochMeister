@@ -112,7 +112,7 @@ export class SupabaseService {
         steps: recipe.steps || [],
         cooking_time: recipe.cookingTime,
         image_url: recipe.image,
-        category: recipe.category
+        category: recipe.category,
       };
 
       const { data, error } = await this.supabase
@@ -294,32 +294,64 @@ export class SupabaseService {
     }
   }
 
-  async uploadImage(blob: Blob): Promise<string | null> {
-    try {
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
-      const filePath = `public/${fileName}`;
-  
-      const { error: uploadError } = await this.supabase.storage
-        .from(this.bucketName)
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false
-        });
-  
-      if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        return null;
-      }
-  
-      const { data } = this.supabase.storage
-        .from(this.bucketName)
-        .getPublicUrl(filePath);
-  
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
+  async updateRecipeImage(recipeId: string, imageUrl: string): Promise<Recipe | null> {
+  try {
+    const { data, error } = await this.supabase
+      .from('recipes')
+      .update({ image_url: imageUrl })
+      .eq('id', recipeId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating recipe image:', error);
       return null;
     }
+
+    const updatedRecipe = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      ingredients: data.ingredients || [],
+      steps: data.steps || [],
+      cookingTime: data.cooking_time,
+      image: data.image_url,
+      category: data.category,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+
+    // Update local recipes list
+    const currentRecipes = this._recipes.value;
+    const index = currentRecipes.findIndex(r => r.id === recipeId);
+    if (index !== -1) {
+      currentRecipes[index] = updatedRecipe;
+      this._recipes.next([...currentRecipes]);
+    }
+
+    return updatedRecipe;
+  } catch (error) {
+    console.error('Error updating recipe image:', error);
+    return null;
   }
+}
+
+async uploadImage(blob: Blob): Promise<string | null> {
+  try {
+    // Der Code hier ist bereits gut, prüfen Sie dennoch:
+    const fileName = `${Date.now()}.jpg`;
+    const filePath = `public/${fileName}`;
+    const { error: uploadError } = await this.supabase.storage
+      .from(this.bucketName)
+      .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+    if (uploadError) {
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+    const { data } = this.supabase.storage.from(this.bucketName).getPublicUrl(filePath);
+    return data?.publicUrl || null;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error; // Zeigt im Toast eine Nachricht an
+  }
+}
 }

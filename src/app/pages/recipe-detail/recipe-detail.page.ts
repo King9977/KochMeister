@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { AlertController, ModalController } from '@ionic/angular/standalone';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent,
   IonButtons, IonBackButton, IonIcon, IonButton,
@@ -89,12 +90,12 @@ import { NotificationService } from '../../services/notification.service';
     </ion-content>
 
     <ion-alert
-    [isOpen]="showTimerAlert"
-    header="Timer"
-    [message]="timerMessage"
-    [buttons]="['OK']"
-    (didDismiss)="handleAlertDismiss()"
-></ion-alert>
+      [isOpen]="showTimerAlert"
+      header="Timer"
+      [message]="timerMessage"
+      [buttons]="['OK']"
+      (didDismiss)="handleAlertDismiss()"
+    ></ion-alert>
   `,
   styleUrls: ['./recipe-detail.page.scss'],
   standalone: true,
@@ -129,7 +130,9 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private supabaseService: SupabaseService,
     private storageService: StorageService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private alertController: AlertController,
+    private modalCtrl: ModalController
   ) {
     addIcons({
       timerOutline,
@@ -183,16 +186,10 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
     if (selectedIngredients.length === 0) return;
   
     try {
-      // Hole aktuelle Liste
       const currentList = await this.storageService.getShoppingList();
-      
-      // Füge neue Items direkt zur Liste hinzu ohne Duplikatprüfung
       const updatedList = [...currentList, ...selectedIngredients];
-      
-      // Speichere in lokalem Storage
       await this.storageService.saveShoppingList(updatedList);
       
-      // Speichere jedes neue Item in Supabase
       for (const newItem of selectedIngredients) {
         try {
           await this.supabaseService.addShoppingItem(newItem);
@@ -201,7 +198,6 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
         }
       }
   
-      // Reset selections
       if (this.recipe?.ingredients) {
         this.recipe.ingredients = this.recipe.ingredients.map(ingredient => ({
           ...ingredient,
@@ -214,56 +210,71 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
   }
 
   async startTimer() {
-    if (this.recipe?.cookingTime) {
-      // Erst alten Timer aufräumen falls vorhanden
-      if (this.timer) {
-        clearInterval(this.timer);
-        this.timer = null;
-      }
-
-      const minutes = this.recipe.cookingTime;
-      const title = this.recipe.title || 'Rezept';
-      let timeLeft = minutes * 60;
-      
-      try {
-        // Timer im UI starten
-        this.timer = setInterval(() => {
-          timeLeft--;
-          if (timeLeft <= 0) {
-            clearInterval(this.timer);
-            this.timer = null;
-            this.timerMessage = 'Timer abgelaufen!';
-            this.showTimerAlert = true;
-          }
-        }, 1000);
-
-        // Notification planen
-        const notificationScheduled = await this.notificationService.scheduleNotification(
-          title,
-          minutes * 60
-        );
-
-        if (!notificationScheduled) {
-          console.log('Benachrichtigungen nicht verfügbar - nur UI Timer wird verwendet');
-        }
-      } catch (error) {
-        console.error('Fehler beim Starten des Timers:', error);
-      }
+    if (!this.recipe?.cookingTime) {
+      const alert = await this.alertController.create({
+        header: 'Fehler',
+        message: 'Keine Kochzeit für dieses Rezept definiert.',
+        buttons: ['OK']
+      });
+      await alert.present();
+      return;
     }
+  
+    const minutes = this.recipe.cookingTime;
+    const title = this.recipe.title || 'Rezept';
+  
+    const confirmAlert = await this.alertController.create({
+      header: 'Timer starten',
+      message: `Möchtest du den Timer für "${title}" starten?\n\nDauer: ${minutes} Minuten`,
+      buttons: [
+        {
+          text: 'Abbrechen',
+          role: 'cancel'
+        },
+        {
+          text: 'Timer starten',
+          handler: async () => {
+            try {
+              const notificationScheduled = await this.notificationService.scheduleNotification(
+                title,
+                minutes
+              );
+  
+              if (notificationScheduled) {
+                const successAlert = await this.alertController.create({
+                  header: 'Timer gestartet',
+                  message: `Timer wurde für ${minutes} Minuten gestellt.`,
+                  buttons: ['OK']
+                });
+                await successAlert.present();
+              }
+            } catch (error) {
+              console.error('Fehler beim Starten des Timers:', error);
+              const errorAlert = await this.alertController.create({
+                header: 'Fehler',
+                message: 'Der Timer konnte nicht gestellt werden. Bitte versuchen Sie es erneut.',
+                buttons: ['OK']
+              });
+              await errorAlert.present();
+            }
+            return true;
+          }
+        }
+      ]
+    });
+  
+    await confirmAlert.present();
   }
 
-  // Wichtig: Timer aufräumen wenn die Komponente zerstört wird
-  ngOnDestroy(): void {  // void Return type hinzufügen
+  ngOnDestroy(): void {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }
   }
 
-  // Alert Handler hinzufügen
   handleAlertDismiss() {
     this.showTimerAlert = false;
-    // Sicherstellen dass der Timer gestoppt ist
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;

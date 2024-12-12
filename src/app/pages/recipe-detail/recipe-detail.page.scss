@@ -68,3 +68,8 @@
     --size: 20px;
     --checkbox-background-checked: var(--ion-color-primary);
   }
+  .custom-alert {
+    .alert-message {
+      white-space: pre-line;
+    }
+  }

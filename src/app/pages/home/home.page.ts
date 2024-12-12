@@ -12,7 +12,7 @@ import { addIcons } from 'ionicons';
 import { 
   addOutline, searchOutline, timeOutline, 
   restaurantOutline, listOutline, settingsOutline, 
-  cloudOfflineOutline 
+  cloudOfflineOutline, storefrontOutline 
 } from 'ionicons/icons';
 import { Recipe } from '../../interfaces/recipe.interface';
 import { SupabaseService } from '../../services/supabase.service';
@@ -70,6 +70,10 @@ import { Network } from '@capacitor/network';
         <ion-icon name="list-outline"></ion-icon>
         <ion-label>Einkaufsliste</ion-label>
       </ion-tab-button>
+      <ion-tab-button tab="location" [routerLink]="['/location']">
+        <ion-icon name="storefront-outline"></ion-icon>
+        <ion-label>Supermärkte</ion-label>
+      </ion-tab-button>
       <ion-tab-button tab="settings" [routerLink]="['/settings']">
         <ion-icon name="settings-outline"></ion-icon>
         <ion-label>Einstellungen</ion-label>
@@ -116,7 +120,8 @@ export class HomePage implements OnInit {
       restaurantOutline,
       listOutline,
       settingsOutline,
-      searchOutline
+      searchOutline,
+      storefrontOutline
     });
   }
 
@@ -173,4 +178,4 @@ export class HomePage implements OnInit {
   openRecipe(recipe: Recipe) {
     this.router.navigate(['/recipe-detail', recipe.id]);
   }
-}
+  }

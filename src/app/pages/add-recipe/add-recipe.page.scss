@@ -75,3 +75,14 @@
   .name-input {
     flex: 1;
   }
+ion-item.ion-invalid {
+  --highlight-background: var(--ion-color-danger);
+  
+  ion-label, ion-input {
+    color: var(--ion-color-danger) !important;
+  }
+
+  &::part(native) {
+    border: 1px solid var(--ion-color-danger);
+  }
+}

@@ -48,9 +48,13 @@ import { LoadingController, ToastController } from '@ionic/angular';
 
       <div class="form-container">
         <ion-list>
-          <ion-item>
+          <ion-item [class.ion-invalid]="showTitleError">
             <ion-label position="stacked">Titel</ion-label>
-            <ion-input [(ngModel)]="recipe.title" placeholder="z.B. Spaghetti Bolognese"></ion-input>
+            <ion-input 
+              [(ngModel)]="recipe.title" 
+              placeholder="z.B. Spaghetti Bolognese"
+              (ionInput)="showTitleError = false"
+            ></ion-input>
           </ion-item>
 
           <ion-item>
@@ -162,6 +166,7 @@ export class AddRecipePage {
     category: undefined
   };
   recipeImage: string | null = null;
+  showTitleError = false;
 
   constructor(
     private supabaseService: SupabaseService,
@@ -265,6 +270,7 @@ export class AddRecipePage {
 
   async saveRecipe() {
     if (!this.recipe.title) {
+      this.showTitleError = true;
       await this.showToast('Bitte gib einen Titel ein');
       return;
     }

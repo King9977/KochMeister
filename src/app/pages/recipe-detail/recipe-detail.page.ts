@@ -19,6 +19,8 @@ import { SupabaseService } from '../../services/supabase.service';
 import { StorageService } from '../../services/storage.service';
 import { RouterModule } from '@angular/router';
 import { NotificationService } from '../../services/notification.service';
+import { Share } from '@capacitor/share';
+
 
 @Component({
   selector: 'app-recipe-detail',
@@ -273,18 +275,17 @@ export class RecipeDetailPage implements OnInit, OnDestroy {
   }
 
   async shareRecipe() {
-    if (this.recipe) {
-      const shareData = {
+    if (!this.recipe) return;
+  
+    try {
+      await Share.share({
         title: this.recipe.title,
         text: `Schau dir dieses leckere Rezept an: ${this.recipe.title}`,
-        url: window.location.href
-      };
-      
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.error('Fehler beim Teilen:', error);
-      }
+        url: window.location.href,
+        dialogTitle: 'Rezept teilen'
+      });
+    } catch (error) {
+      console.error('Fehler beim Teilen:', error);
     }
   }
 
